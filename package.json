@@ -1,0 +1,36 @@
+{
+  "name": "phaser-getting-started",
+  "version": "1.0.0",
+  "description": "This is a test repo for Phaser js. This project is basically here for me to get use to the api",
+  "scripts": {
+    "start": "parcel serve ./src/index.html -p 8000",
+    "build": "parcel build ./src/index.html",
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Alexandria/phaser-getting-started.git"
+  },
+  "author": "Lex",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Alexandria/phaser-getting-started/issues"
+  },
+  "homepage": "https://github.com/Alexandria/phaser-getting-started#readme",
+  "dependencies": {
+    "phaser": "^3.53.1"
+  },
+  "parcelCleanPaths": [
+    "dist"
+  ],
+  "devDependencies": {
+    "@parcel/transformer-image": "^2.0.0-beta.2",
+    "@types/http-server": "^0.10.1",
+    "@types/node": "^14.14.35",
+    "@typescript-eslint/eslint-plugin": "^4.18.0",
+    "@typescript-eslint/parser": "^4.18.0",
+    "eslint": "^7.22.0",
+    "parcel": "^2.0.0-beta.2",
+    "typescript": "^4.2.3"
+  }
+}
