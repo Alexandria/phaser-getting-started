@@ -1,123 +1,120 @@
-import Phaser from 'phaser'
-import sky from 'url:../assets/sky.png'
-import ground from 'url:../assets/platform.png'
-import star from 'url:../assets/star.png'
-import dude from 'url:../assets/dude.png'
-import { group } from 'node:console'
-import { POINT_CONVERSION_COMPRESSED } from 'node:constants'
+import Phaser from "phaser";
+import tiles from "url:../assets/platformergraphics-iceworld/sheet.png";
+import tileMap from "../assets/gameMap.json";
+import ground from "url:../assets/platform.png";
+import star from "url:../assets/star.png";
+import dude from "url:../assets/dude.png";
+import bg from "url:../assets/bg.png";
 
- 
 export default class HellowWorldScene extends Phaser.Scene {
+  private player?: Phaser.Physics.Matter.Sprite;
+  private cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
+  private isTouchingGround = false;
 
-    private platforms?: Phaser.Physics.Arcade.StaticGroup
-    private player?:Phaser.Physics.Arcade.Sprite
-    private cursors?: Phaser.Types.Input.Keyboard.CursorKeys
-    private stars?: Phaser.Physics.Arcade.Group
-    private score:number = 0
-    private scoreText:Phaser.GameObjects.Text
+  constructor() {
+    super("game");
+  }
 
-    constructor(){
-        super('hello-world')
-    }
+  init = () => {
+    this.cursors = this.input.keyboard.createCursorKeys();
+  };
 
-    preload =()=>
-    {
-        this.load.image('sky', sky);
-        this.load.image('ground', ground);
-        this.load.image('star', star);
-        this.load.spritesheet('dude', dude, {frameWidth:32,frameHeight:48})
-    }
+  preload = () => {
+    this.load.image("tiles", tiles);
+    this.load.image("bg", bg);
+    this.load.tilemapTiledJSON("tileMap", tileMap);
+    this.load.spritesheet("dude", dude, { frameWidth: 32, frameHeight: 48 });
+  };
 
-    create = () =>
-    {
-        this.add.image(400, 300, 'sky');
-        this.scoreText = this.add.text(16,16,'score:0', {fontSize:'32', fill:'#000'})
+  create = () => {
+    const { width, height } = this.scale;
+    const map = this.make.tilemap({ key: "tileMap" });
+    const backgound = map.images;
+    backgound.forEach((bgImage, index) => {
+      const { x, y } = bgImage;
+      let test = 1;
 
-        this.platforms = this.physics.add.staticGroup()
-        const ground:Phaser.GameObjects.Sprite = this.platforms.create(400, 568, 'ground')
-         ground.setScale(2).refreshBody()
+      if (index === 1) {
+        this.add.image(test + 2400 * index, y - height * 0.1, "bg");
+      } else {
+        this.add.image(x, y, "bg");
+      }
+    });
+    const tileSet = map.addTilesetImage("iceworld", "tiles");
 
-         this.platforms.create(600, 400, 'ground')
-         this.platforms.create(50, 250, 'ground')
-         this.platforms.create(750, 220, 'ground')
+    const ground = map.createLayer("ground", tileSet);
 
-         this.player = this.physics.add.sprite(100, 400, 'dude')
-         this.player.setBounce(0.2)
-         this.player.setCollideWorldBounds(true)
+    console.log("What are my layers?? ", backgound);
+    this.createDudeAnimations();
 
-         this.anims.create({
-             key:'left',
-             frames: this.anims.generateFrameNumbers('dude', {start:0, end:3}),
-             frameRate:10,
-             repeat:-1
-         })
+    ground.setCollisionByProperty({ collides: true });
 
-         this.anims.create({
-             key:'turn',
-             frames: [{key:'dude', frame:4}],
-             frameRate:20
-         })
+    const objectLayer = map.getObjectLayer("object");
 
-         this.anims.create({
-             key:'right',
-             frames: this.anims.generateFrameNumbers('dude', {start:5, end:8}),
-             frameRate:10,
-             repeat:-1
+    objectLayer.objects.forEach((objData) => {
+      const { x = 0, y = 0, name } = objData;
+      switch (name) {
+        case "spawn": {
+          this.player = this.matter.add
+            .sprite(x + width * 0.05, y, "dude", 4)
+            .play("idel")
+            .setFixedRotation();
 
-         })
-
-
-
-         const  collectStar = (player,star) => {
-             star.disableBody(true,true)
-
-             this.score += 10
-             this.scoreText.setText('Score: '+this.score)
-            
-            }
-
-
-         this.physics.add.collider(this.player, this.platforms)
-
-         
-         this.stars = this.physics.add.group({
-            key:'star',
-            repeat: 11,
-            setXY:{ x:12, y:0, stepX: 70}
-         })
-
-         this.physics.add.collider(this.stars, this.platforms)
-
-
-         this.stars.children.iterate( (child) => {
-             child.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8))
-         })
-
-         this.physics.add.overlap(this.player, this.stars, collectStar, null, this)
-
-         this.cursors = this.input.keyboard.createCursorKeys()
-      
-
-
-    }
-
-    update = () => {
-        if(this.cursors && this.cursors?.left.isDown){
-            this.player?.setVelocityX(-160)
-            this.player?.anims.play('left', true)
-        } else if (this.cursors?.right.isDown){
-            this.player?.setVelocityX(160)
-            this.player?.anims.play('right', true)
-        }else{
-            this.player?.setVelocityX(0)
-            this.player?.anims.play('turn')
+          this.player.setOnCollide((data: MatterJS.ICollisionPair) => {
+            this.isTouchingGround = true;
+          });
+          this.cameras.main.startFollow(this.player);
         }
+      }
+    });
 
+    this.cursors = this.input.keyboard.createCursorKeys();
 
-        if(this.cursors?.up.isDown && this.player?.body.touching.down){
-            this.player?.setVelocityY(-330)
-        }
+    this.matter.world.convertTilemapLayer(ground);
+  };
 
+  private createDudeAnimations = () => {
+    this.anims.create({
+      key: "walk-left",
+      frames: this.anims.generateFrameNumbers("dude", { start: 0, end: 3 }),
+      frameRate: 12,
+      repeat: -1,
+    });
 
+    this.anims.create({
+      key: "idel",
+      frames: [{ key: "dude", frame: 4 }],
+    });
+
+    this.anims.create({
+      key: "walk-right",
+      frames: this.anims.generateFrameNumbers("dude", { start: 5, end: 8 }),
+      frameRate: 12,
+      repeat: -1,
+    });
+  };
+
+  update = () => {
+    if (!this.player) return;
+    const speed = 3;
+    if (this.cursors?.left.isDown) {
+      this.player.setVelocityX(-speed);
+      this.player.play("walk-left", true);
+    } else if (this.cursors?.right.isDown) {
+      this.player.setVelocityX(speed);
+      this.player.play("walk-right", true);
+    } else {
+      this.player.setVelocityX(0);
+      this.player.play("idel", true);
     }
+
+    const spaceJustPressed = this.cursors
+      ? Phaser.Input.Keyboard.JustDown(this.cursors?.space)
+      : "";
+
+    if (spaceJustPressed && this.isTouchingGround) {
+      this.player?.setVelocityY(-12);
+      this.isTouchingGround = false;
+    }
+  };
 }
